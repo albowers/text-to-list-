@@ -45,6 +45,23 @@
   .datebar .day span{font-size:12px;color:var(--muted)}
   .todaybtn{font-size:12px;color:var(--accent);background:none;padding:4px}
 
+  /* day/week toggle */
+  .seg{display:flex;background:#e6ebe8;border-radius:11px;padding:4px;margin-bottom:13px}
+  .seg button{flex:1;padding:10px;border-radius:8px;background:none;font-size:15px;font-weight:700;color:var(--muted)}
+  .seg button.on{background:#fff;color:var(--accent);box-shadow:0 1px 2px rgba(16,35,27,.12)}
+
+  /* week breakdown */
+  .wkday{display:flex;align-items:center;gap:10px;padding:9px 2px;border-bottom:1px solid #f1f4f2;cursor:pointer}
+  .wkday:last-child{border-bottom:0}
+  .wkday.future{opacity:.45}
+  .wkday .dlab{width:74px;flex:0 0 auto;font-size:13px}
+  .wkday .dlab b{display:block;font-size:14px}
+  .wkday .dbar{flex:1;height:10px;background:#eef1ef;border-radius:6px;overflow:hidden}
+  .wkday .dbar>i{display:block;height:100%;background:var(--cal);border-radius:6px}
+  .wkday .dbar.over>i{background:#dc2626}
+  .wkday .dcal{width:64px;text-align:right;font-size:13px;font-variant-numeric:tabular-nums;flex:0 0 auto}
+  .wknote{font-size:13px;color:var(--muted);margin:10px 0 2px;text-align:center}
+
   /* goals */
   .goalrow{margin:11px 0}
   .goalrow:first-child{margin-top:4px}
@@ -121,6 +138,12 @@
 </header>
 
 <div class="wrap">
+  <div class="seg" id="seg">
+    <button data-v="day" class="on">Day</button>
+    <button data-v="week">Week</button>
+  </div>
+
+  <div id="dayView">
   <div class="card datebar" id="dateCard"></div>
   <div class="card" id="goalCard"></div>
   <div class="card">
@@ -139,6 +162,11 @@
   <div class="card">
     <h2 class="sec" id="logTitle">Today's food</h2>
     <div id="log"></div>
+  </div>
+  </div><!-- /dayView -->
+
+  <div id="weekView" style="display:none">
+    <div class="card" id="weekCard"></div>
   </div>
 </div>
 
@@ -195,7 +223,7 @@ const put=(k,v)=>{ try{localStorage.setItem(k,JSON.stringify(v));}catch(e){} };
 function userFoods(){ return get(K_FOODS,{}); }       // nameLower -> {name,serving,cal,p,fiber}
 function usage(){ return get(K_USAGE,{}); }            // nameLower -> count
 function allLogs(){ return get(K_LOG,{}); }            // dateStr -> [ {name,serving,cal,p,fiber,qty} ]
-function goals(){ return get(K_GOALS,{cal:2000,p:100,fiber:30}); }
+function goals(){ return get(K_GOALS,{cal:1770,p:200,fiber:30}); }
 
 /* merged library: built-ins overlaid with user edits/additions */
 function library(){
@@ -209,6 +237,9 @@ function foodByName(name){ return library()[name.toLowerCase()]||null; }
 
 /* ---------------- Date handling ---------------- */
 let viewDate = todayStr();
+let VIEW = "day";
+let weekAnchor = null;   // any date inside the currently-viewed week
+function weekStart(s){ const d=parseDate(s); d.setDate(d.getDate()-d.getDay()); return todayStr(d); } // Sunday start
 function todayStr(d){ d=d||new Date(); return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0"); }
 function parseDate(s){ const [y,m,d]=s.split("-").map(Number); return new Date(y,m-1,d); }
 function shiftDate(s,delta){ const d=parseDate(s); d.setDate(d.getDate()+delta); return todayStr(d); }
@@ -240,10 +271,12 @@ function setQty(i,q){ const arr=todaysLog(); if(!arr[i])return; q=Math.round(q*1
 function delEntry(i){ const arr=todaysLog(); arr.splice(i,1); saveLog(arr); renderAll(); }
 
 /* ---------------- Totals ---------------- */
-function totals(){
-  return todaysLog().reduce((t,e)=>{ t.cal+=e.cal*e.qty; t.p+=e.p*e.qty; t.fiber+=e.fiber*e.qty; return t; },
-                            {cal:0,p:0,fiber:0});
+function totalsOf(arr){
+  return arr.reduce((t,e)=>{ t.cal+=e.cal*e.qty; t.p+=e.p*e.qty; t.fiber+=e.fiber*e.qty; return t; },
+                    {cal:0,p:0,fiber:0});
 }
+function totals(){ return totalsOf(todaysLog()); }
+function dayTotals(date){ return totalsOf(allLogs()[date]||[]); }
 
 /* ---------------- Rendering ---------------- */
 const $=id=>document.getElementById(id);
@@ -545,12 +578,72 @@ function applyZoom(z){ document.documentElement.style.zoom=z; localStorage.setIt
 function bumpZoom(d){ applyZoom(Math.min(2.2,Math.max(0.9,Math.round((getZoom()+d)*10)/10))); }
 
 /* ---------------- Boot ---------------- */
+const MON=["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+const DOW=["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
+function renderWeek(){
+  const host=$("weekCard"); host.innerHTML="";
+  const start=weekStart(weekAnchor||todayStr());
+  const dates=[]; for(let i=0;i<7;i++) dates.push(shiftDate(start,i));
+  const g=goals(), today=todayStr();
+
+  // week navigation header
+  const head=document.createElement("div"); head.className="datebar";
+  const prev=mk("button","nav","‹"); prev.onclick=()=>{ weekAnchor=shiftDate(start,-7); renderWeek(); };
+  const next=mk("button","nav","›"); next.onclick=()=>{ weekAnchor=shiftDate(start,7); renderWeek(); };
+  const mid=document.createElement("div"); mid.className="day";
+  const a=parseDate(dates[0]), b=parseDate(dates[6]);
+  mid.innerHTML="<b>"+MON[a.getMonth()]+" "+a.getDate()+" – "+MON[b.getMonth()]+" "+b.getDate()+"</b>";
+  if(start===weekStart(today)){ mid.innerHTML+="<span>This week</span>"; }
+  else { const tb=mk("button","todaybtn","Jump to this week"); tb.onclick=()=>{ weekAnchor=today; renderWeek(); }; mid.appendChild(tb); }
+  head.append(prev,mid,next); host.appendChild(head);
+
+  // averages over days that have any log
+  let sum={cal:0,p:0,fiber:0}, daysLogged=0;
+  const per=dates.map(d=>{ const t=dayTotals(d), has=(allLogs()[d]||[]).length>0;
+    if(has){ daysLogged++; sum.cal+=t.cal; sum.p+=t.p; sum.fiber+=t.fiber; } return {d,t,has}; });
+  const div=daysLogged||1, avg={cal:sum.cal/div,p:sum.p/div,fiber:sum.fiber/div};
+
+  const note=document.createElement("div"); note.className="wknote";
+  note.textContent = daysLogged? ("Average per day · "+daysLogged+" day"+(daysLogged>1?"s":"")+" logged")
+                               : "No food logged this week yet";
+  host.appendChild(note);
+  host.appendChild(bar("Calories","cal",avg.cal,g.cal,"b-cal",""));
+  host.appendChild(bar("Protein","pro",avg.p,g.p,"b-pro","g"));
+  host.appendChild(bar("Fiber","fib",avg.fiber,g.fiber,"b-fib","g"));
+
+  const tot=document.createElement("div"); tot.className="wknote"; tot.style.marginTop="12px";
+  tot.innerHTML="Week total: <b>"+r(sum.cal)+"</b> cal · "+r1(sum.p)+"g protein · "+r1(sum.fiber)+"g fiber";
+  host.appendChild(tot);
+
+  // per-day breakdown (tap a day to open it)
+  const list=document.createElement("div"); list.style.marginTop="4px";
+  per.forEach(({d,t,has})=>{
+    const dt=parseDate(d), future=d>today;
+    const pct=g.cal>0?Math.min(100,(t.cal/g.cal)*100):0, over=g.cal>0&&t.cal>g.cal;
+    const row=document.createElement("div"); row.className="wkday"+(future?" future":"");
+    row.innerHTML='<div class="dlab"><b>'+DOW[dt.getDay()]+'</b>'+(dt.getMonth()+1)+'/'+dt.getDate()+(d===today?' • today':'')+'</div>'+
+                  '<div class="dbar'+(over?" over":"")+'"><i style="width:'+pct+'%"></i></div>'+
+                  '<div class="dcal">'+(has?r(t.cal):'—')+'</div>';
+    row.onclick=()=>{ viewDate=d; setView("day"); };
+    list.appendChild(row);
+  });
+  host.appendChild(list);
+}
+function setView(v){
+  VIEW=v;
+  $("dayView").style.display = v==="day"?"":"none";
+  $("weekView").style.display = v==="week"?"":"none";
+  Array.from($("seg").children).forEach(b=>b.classList.toggle("on", b.dataset.v===v));
+  if(v==="week"){ if(!weekAnchor) weekAnchor=todayStr(); renderWeek(); } else renderAll();
+}
+
 function renderAll(){ renderDate(); renderGoals(); renderFavs(); renderMeals(); renderLog(); }
 applyZoom(getZoom());
 $("search").addEventListener("input",renderResults);
 $("sizeUp").onclick=()=>bumpZoom(0.1);
 $("sizeDown").onclick=()=>bumpZoom(-0.1);
 $("mealEdit").onclick=()=>{ MEAL_EDIT=!MEAL_EDIT; $("mealEdit").textContent=MEAL_EDIT?"done":"edit"; renderMeals(); };
+Array.from($("seg").children).forEach(b=> b.onclick=()=>setView(b.dataset.v));
 renderAll();
 
 if("serviceWorker" in navigator && location.protocol.startsWith("http")){

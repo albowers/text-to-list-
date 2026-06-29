@@ -1,5 +1,5 @@
 /* Minimal service worker: installable + offline. Bump CACHE when index.html changes. */
-const CACHE = "quick-cal-v1";
+const CACHE = "quick-cal-v2";
 const ASSETS = ["./", "./index.html", "./manifest.webmanifest",
                 "./icon-192.png", "./icon-512.png", "./icon-180.png"];
 
