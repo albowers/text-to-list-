@@ -1,0 +1,735 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0f766e">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icon-180.png">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Aisle Sorter">
+<title>Aisle Sorter</title>
+<style>
+  :root{
+    --bg:#f4f5f7; --card:#fff; --ink:#16202b; --muted:#5b6b7a;
+    --accent:#0f766e; --accent-soft:#d7f0ec; --line:#e3e7eb; --done:#9aa6b1;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+       background:var(--bg);color:var(--ink);padding-bottom:48px}
+  header{position:sticky;top:0;z-index:5;background:var(--accent);color:#fff;
+         padding:14px 16px calc(14px + env(safe-area-inset-top)) 16px;
+         padding-top:calc(14px + env(safe-area-inset-top));
+         box-shadow:0 2px 8px rgba(0,0,0,.12)}
+  header h1{margin:0;font-size:20px;font-weight:700;letter-spacing:.2px}
+  header p{margin:2px 0 0;font-size:13px;opacity:.85}
+  .wrap{max-width:680px;margin:0 auto;padding:16px}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:14px;
+        padding:14px;margin-bottom:14px;box-shadow:0 1px 2px rgba(16,32,43,.04)}
+  label.fld{display:block;font-size:13px;font-weight:600;color:var(--muted);margin-bottom:6px}
+  textarea{width:100%;min-height:120px;border:1px solid var(--line);border-radius:10px;
+           padding:11px;font-size:16px;resize:vertical;font-family:inherit;background:#fbfcfd}
+  textarea:focus,select:focus{outline:2px solid var(--accent-soft);border-color:var(--accent)}
+  .row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+  select{flex:1;min-width:140px;border:1px solid var(--line);border-radius:10px;padding:11px;
+         font-size:16px;background:#fbfcfd;font-family:inherit}
+  button{border:0;border-radius:10px;padding:12px 16px;font-size:15px;font-weight:650;
+         cursor:pointer;font-family:inherit}
+  .primary{background:var(--accent);color:#fff;flex:1}
+  .ghost{background:#eef1f3;color:var(--ink)}
+  .mini{padding:7px 11px;font-size:13px}
+  .actions{display:flex;gap:10px;margin-top:12px}
+  .dept{margin-bottom:16px}
+  .dept h2{display:flex;align-items:center;gap:8px;font-size:15px;margin:0 0 8px;
+           padding-bottom:6px;border-bottom:2px solid var(--accent-soft);color:var(--accent)}
+  .dept h2 .cnt{margin-left:auto;font-size:12px;color:var(--muted);font-weight:600}
+  ul{list-style:none;margin:0;padding:0}
+  li.item{display:flex;align-items:center;gap:11px;padding:10px 4px;border-bottom:1px solid #f0f2f4}
+  li.item:last-child{border-bottom:0}
+  .check{width:24px;height:24px;border:2px solid var(--line);border-radius:7px;flex:0 0 auto;
+         display:flex;align-items:center;justify-content:center;font-size:15px;color:#fff}
+  li.item.done .check{background:var(--accent);border-color:var(--accent)}
+  li.item.done .name{text-decoration:line-through;color:var(--done)}
+  .name{font-size:16px;flex:1}
+  .qty{font-size:13px;color:var(--muted);background:#f0f2f4;border-radius:20px;padding:2px 9px}
+  .unknown .name{font-weight:600}
+  .assign{border:1px solid var(--line);border-radius:8px;padding:7px;font-size:14px;background:#fff}
+  .hint{font-size:13px;color:var(--muted);line-height:1.45}
+  .empty{text-align:center;color:var(--muted);padding:30px 10px;font-size:15px}
+  .pill{display:inline-block;background:var(--accent-soft);color:var(--accent);border-radius:20px;
+        padding:3px 10px;font-size:12px;font-weight:600;margin-left:6px}
+  .topbtns{display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap}
+  details{margin-top:10px}
+  summary{font-size:13px;color:var(--muted);cursor:pointer}
+  .del{color:#b04646;background:none;border:0;font-size:18px;padding:2px 6px;cursor:pointer}
+  .addrow{display:flex;gap:8px;margin-top:6px}
+  .addrow input{flex:1;border:1px solid var(--line);border-radius:9px;padding:10px;font-size:16px;background:#fbfcfd}
+  /* layout editor */
+  .ed h2{font-size:16px;margin:0 0 4px;color:var(--accent)}
+  .ed .sub{font-size:13px;color:var(--muted);margin:0 0 12px;line-height:1.45}
+  .erow{display:flex;align-items:center;gap:8px;padding:11px 6px;border-bottom:1px solid #f0f2f4}
+  .erow:last-of-type{border-bottom:0}
+  .erow.hidden{opacity:.4}
+  .erow .lbl{flex:1;font-size:16px;font-weight:600;min-width:0}
+  .erow .num{font-size:12px;color:var(--muted);width:22px;text-align:right}
+  .aisle{width:80px;border:1px solid var(--line);border-radius:8px;padding:9px;font-size:15px;background:#fbfcfd}
+  .mv{width:44px;height:44px;border:1px solid var(--line);background:#f7f9fa;border-radius:8px;font-size:17px;
+      display:flex;align-items:center;justify-content:center;padding:0}
+  .mv:disabled{opacity:.3}
+  .eye{width:44px;height:44px;border:1px solid var(--line);background:#f7f9fa;border-radius:8px;font-size:17px;padding:0}
+  .ed .foot{display:flex;gap:10px;margin-top:14px}
+  .aislebadge{font-size:11px;font-weight:700;color:#fff;background:var(--accent);border-radius:20px;
+              padding:2px 9px;margin-left:6px}
+  /* header text-size control */
+  .hbar{display:flex;align-items:center;gap:10px}
+  .hbar .titles{flex:1;min-width:0}
+  .sizebtns{display:flex;gap:6px;flex:0 0 auto}
+  .sizebtns button{width:40px;height:40px;border-radius:9px;border:0;font-weight:800;font-size:18px;
+                   background:rgba(255,255,255,.18);color:#fff}
+  .sizebtns button:active{background:rgba(255,255,255,.32)}
+</style>
+</head>
+<body>
+<header>
+  <div class="hbar">
+    <div class="titles">
+      <h1>🛒 Aisle Sorter</h1>
+      <p>Paste a text → get a list sorted by aisle</p>
+    </div>
+    <div class="sizebtns">
+      <button id="sizeDown" title="Smaller text" aria-label="Smaller text">A−</button>
+      <button id="sizeUp" title="Bigger text" aria-label="Bigger text">A+</button>
+    </div>
+  </div>
+</header>
+
+<div class="wrap">
+
+  <div class="card" id="inputCard">
+    <label class="fld" for="raw">Paste the text message</label>
+    <textarea id="raw" placeholder="e.g. Can you grab milk, eggs, bananas and some bread? Also dish soap and 2 lbs of ground beef"></textarea>
+    <div class="row" style="margin-top:10px">
+      <label class="fld" for="store" style="margin:0">Store</label>
+      <select id="store"></select>
+    </div>
+    <div class="actions">
+      <button class="primary" id="build">Build my list</button>
+      <button class="ghost" id="clearText">Clear</button>
+    </div>
+    <button class="ghost" id="customizeBtn" style="width:100%;margin-top:10px">⚙️ Customize this store's layout</button>
+  </div>
+
+  <div id="editor"></div>
+  <div id="output"></div>
+
+</div>
+
+<script>
+/* ---------- Departments (canonical keys + label/emoji) ---------- */
+const DEPTS = {
+  produce:   {label:"Produce",            emoji:"🥦"},
+  bakery:    {label:"Bakery",             emoji:"🥖"},
+  deli:      {label:"Deli",               emoji:"🧀"},
+  meat:      {label:"Meat",               emoji:"🥩"},
+  seafood:   {label:"Seafood",            emoji:"🐟"},
+  dairy:     {label:"Dairy & Eggs",       emoji:"🥛"},
+  frozen:    {label:"Frozen",             emoji:"🧊"},
+  bread:     {label:"Bread & Breakfast",  emoji:"🍞"},
+  canned:    {label:"Canned & Pantry",    emoji:"🥫"},
+  baking:    {label:"Baking & Spices",    emoji:"🧁"},
+  condiments:{label:"Condiments & Sauces",emoji:"🍯"},
+  pasta:     {label:"Pasta & Rice",       emoji:"🍝"},
+  snacks:    {label:"Snacks",             emoji:"🍿"},
+  beverages: {label:"Beverages",          emoji:"🥤"},
+  international:{label:"International",    emoji:"🌮"},
+  health:    {label:"Health & Beauty",    emoji:"🧴"},
+  household: {label:"Household & Cleaning",emoji:"🧽"},
+  paper:     {label:"Paper Goods",        emoji:"🧻"},
+  baby:      {label:"Baby",               emoji:"🍼"},
+  pet:       {label:"Pet",                emoji:"🐾"},
+  other:     {label:"Other / Check it",   emoji:"🛍️"}
+};
+
+/* ---------- Store walk-orders ---------- */
+const STORES = {
+  sams: {
+    label:"Sam's Club",
+    order:["produce","bakery","deli","meat","seafood","dairy","frozen","snacks","beverages",
+           "canned","pasta","baking","condiments","bread","international",
+           "health","household","paper","baby","pet","other"],
+    // Sam's keeps seafood in the freezer cases, so file fish under Frozen here.
+    redirect:{seafood:"frozen"}
+  },
+  grocery: {
+    label:"Regular grocery store",
+    order:["produce","bakery","deli","meat","seafood","dairy","frozen","bread","canned",
+           "pasta","baking","condiments","snacks","beverages","international",
+           "health","household","paper","baby","pet","other"]
+  }
+};
+
+/* ---------- Custom per-store layout (order / hidden / aisle labels) ---------- */
+const LS_LAYOUT = "aislesorter_layout_v1";
+function allLayouts(){ try{return JSON.parse(localStorage.getItem(LS_LAYOUT))||{}}catch(e){return {}} }
+function saveLayouts(l){ localStorage.setItem(LS_LAYOUT, JSON.stringify(l)); }
+
+/* The layout actually in effect for a store: starts from defaults, applies any saved
+   order, then guarantees every known dept appears exactly once and "other" is last. */
+function layoutFor(storeKey){
+  const saved = allLayouts()[storeKey] || {};
+  let order = Array.isArray(saved.order) ? saved.order.slice() : STORES[storeKey].order.slice();
+  // drop unknown keys, then append any depts missing from the saved order
+  order = order.filter(k => DEPTS[k]);
+  for(const k in DEPTS){ if(!order.includes(k)) order.push(k); }
+  // "other" is the catch-all for unrecognized items — always present, always last, never hidden
+  order = order.filter(k => k!=="other"); order.push("other");
+  // redirect = "show department X's items under department Y at this store"
+  // start from the store's built-in defaults, then apply any saved overrides
+  // (a saved value of null cancels a default redirect — gives the dept its own section)
+  const redirect = Object.assign({}, STORES[storeKey].redirect || {});
+  const savedRedir = saved.redirect || {};
+  for(const k in savedRedir){ if(savedRedir[k]==null) delete redirect[k]; else redirect[k]=savedRedir[k]; }
+  return { order, hidden: saved.hidden || {}, aisles: saved.aisles || {},
+           redirect, savedRedirect: savedRedir };
+}
+/* Where a department's items actually appear (follows a one-hop redirect). */
+function displayCat(storeKey, cat){ return layoutFor(storeKey).redirect[cat] || cat; }
+/* Order used when building the shopping list (skips hidden + redirected depts; "other" always shown). */
+function effectiveOrder(storeKey){
+  const L = layoutFor(storeKey);
+  return L.order.filter(k => k==="other" || (!L.hidden[k] && !L.redirect[k]));
+}
+function patchLayout(storeKey, patch){
+  const all = allLayouts();
+  const L = layoutFor(storeKey);   // current persisted state (savedRedirect = the saved overrides)
+  all[storeKey] = Object.assign(
+    {order:L.order, hidden:L.hidden, aisles:L.aisles, redirect:L.savedRedirect},
+    patch);
+  saveLayouts(all);
+}
+
+/* ---------- Default item -> department rules ----------
+   Longer / more specific phrases should win, so we sort by length at match time. */
+const DEFAULT_RULES = {
+  // produce
+  "banana":"produce","apple":"produce","orange":"produce","grape":"produce","strawberr":"produce",
+  "blueberr":"produce","raspberr":"produce","lemon":"produce","lime":"produce","avocado":"produce",
+  "lettuce":"produce","spinach":"produce","kale":"produce","salad":"produce","tomato":"produce",
+  "potato":"produce","onion":"produce","garlic":"produce","carrot":"produce","celery":"produce",
+  "broccoli":"produce","cucumber":"produce","pepper":"produce","mushroom":"produce","zucchini":"produce",
+  "cilantro":"produce","parsley":"produce","ginger":"produce","corn":"produce","cabbage":"produce",
+  "melon":"produce","pineapple":"produce","peach":"produce","pear":"produce","mango":"produce",
+  "berries":"produce","fruit":"produce","veggie":"produce","vegetable":"produce","squash":"produce",
+  "asparagus":"produce","cauliflower":"produce","green bean":"produce","sweet potato":"produce",
+  // bakery
+  "bagel":"bakery","croissant":"bakery","muffin":"bakery","donut":"bakery","doughnut":"bakery",
+  "cake":"bakery","pie":"bakery","cookie":"bakery","tortilla":"bakery","roll":"bakery","bun":"bakery",
+  "baguette":"bakery","pita":"bakery",
+  // deli
+  "deli ":"deli","sliced turkey":"deli","sliced ham":"deli","lunch meat":"deli","lunchmeat":"deli",
+  "cold cut":"deli","salami":"deli","prosciutto":"deli","hummus":"deli",
+  // meat & seafood
+  "ground beef":"meat","ground turkey":"meat","chicken breast":"meat","chicken thigh":"meat",
+  "chicken":"meat","beef":"meat","steak":"meat","pork":"meat","bacon":"meat","sausage":"meat",
+  "turkey":"meat","ham":"meat","ribs":"meat","brisket":"meat","meat":"meat",
+  "hot dog":"meat","hotdog":"meat","ground chicken":"meat",
+  "rotisserie":"meat","roasted chicken":"meat","rotisserie chicken":"meat",
+  // seafood (its own department; merged into Frozen at Sam's)
+  "shrimp":"seafood","salmon":"seafood","tilapia":"seafood","fish":"seafood","cod":"seafood",
+  "tuna steak":"seafood","ahi":"seafood","crab":"seafood","lobster":"seafood","scallop":"seafood",
+  "catfish":"seafood","mahi":"seafood","seafood":"seafood","oyster":"seafood","clam":"seafood",
+  // dairy & eggs
+  "milk":"dairy","egg":"dairy","butter":"dairy","cheese":"dairy","yogurt":"dairy","cream cheese":"dairy",
+  "sour cream":"dairy","heavy cream":"dairy","half and half":"dairy","cottage cheese":"dairy",
+  "creamer":"dairy","almond milk":"dairy","oat milk":"dairy","whipped cream":"dairy","margarine":"dairy",
+  // frozen
+  "frozen":"frozen","ice cream":"frozen","popsicle":"frozen","pizza":"frozen","frozen veg":"frozen",
+  "waffle":"frozen","ice ":"frozen","tater tot":"frozen",
+  // bread & breakfast
+  "bread":"bread","cereal":"bread","oatmeal":"bread","oats":"bread","pancake":"bread","syrup":"bread",
+  "granola":"bread","english muffin":"bread","pop tart":"bread","poptart":"bread",
+  // canned & pantry
+  "canned":"canned","soup":"canned","broth":"canned","beans":"canned","black bean":"canned",
+  "tuna":"canned","tomato sauce":"canned","tomato paste":"canned","diced tomato":"canned",
+  "corn can":"canned","green chile":"canned","olives":"canned","pickle":"canned",
+  // pasta & rice
+  "pasta":"pasta","spaghetti":"pasta","macaroni":"pasta","noodle":"pasta","rice":"pasta",
+  "quinoa":"pasta","ramen":"pasta","lasagna":"pasta","penne":"pasta",
+  // baking & spices
+  "flour":"baking","sugar":"baking","baking soda":"baking","baking powder":"baking","vanilla":"baking",
+  "yeast":"baking","cocoa":"baking","chocolate chip":"baking","cake mix":"baking","brownie mix":"baking",
+  "cinnamon":"baking","salt":"baking","pepper shaker":"baking","spice":"baking","seasoning":"baking",
+  "powdered sugar":"baking","brown sugar":"baking","cornstarch":"baking",
+  // condiments & sauces
+  "ketchup":"condiments","mustard":"condiments","mayo":"condiments","mayonnaise":"condiments",
+  "ranch":"condiments","dressing":"condiments","bbq":"condiments","barbecue":"condiments",
+  "soy sauce":"condiments","hot sauce":"condiments","honey":"condiments","jam":"condiments",
+  "jelly":"condiments","peanut butter":"condiments","salsa":"condiments","relish":"condiments",
+  "olive oil":"condiments","vegetable oil":"condiments","cooking oil":"condiments","vinegar":"condiments",
+  // snacks
+  "chips":"snacks","crackers":"snacks","pretzel":"snacks","popcorn":"snacks","nuts":"snacks",
+  "almond":"snacks","trail mix":"snacks","candy":"snacks","chocolate":"snacks","granola bar":"snacks",
+  "fruit snack":"snacks","goldfish":"snacks","cheese it":"snacks","cheez":"snacks","gum":"snacks",
+  // beverages
+  "water":"beverages","soda":"beverages","coke":"beverages","pepsi":"beverages","sprite":"beverages",
+  "juice":"beverages","orange juice":"beverages","apple juice":"beverages","coffee":"beverages",
+  "tea":"beverages","gatorade":"beverages","lemonade":"beverages",
+  "energy drink":"beverages","sparkling":"beverages","beer":"beverages","wine":"beverages",
+  // international
+  "taco":"international","tortilla chip":"international","enchilada":"international","curry":"international",
+  "sushi":"international","sriracha":"international","coconut milk":"international",
+  // health & beauty
+  "shampoo":"health","conditioner":"health","soap":"health","body wash":"health","toothpaste":"health",
+  "toothbrush":"health","deodorant":"health","razor":"health","lotion":"health","sunscreen":"health",
+  "vitamin":"health","ibuprofen":"health","tylenol":"health","advil":"health","medicine":"health",
+  "band aid":"health","bandaid":"health","makeup":"health","floss":"health","mouthwash":"health",
+  "contact solution":"health","tampon":"health","pad":"health","cotton ball":"health",
+  // household & cleaning
+  "dish soap":"household","detergent":"household","laundry":"household","bleach":"household",
+  "free and clear":"household","free & clear":"household","tide":"household","gain detergent":"household",
+  "fabric softener":"household","dryer sheet":"household","downy":"household",
+  "cleaner":"household","clorox":"household","lysol":"household","sponge":"household","trash bag":"household",
+  "garbage bag":"household","ziploc":"household","foil":"household","aluminum foil":"household",
+  "plastic wrap":"household","saran":"household","dishwasher":"household","fabric softener":"household",
+  "air freshener":"household","light bulb":"household","battery":"household","batteries":"household",
+  "windex":"household","swiffer":"household",
+  // paper goods
+  "paper towel":"paper","toilet paper":"paper","tissue":"paper","kleenex":"paper","napkin":"paper",
+  "paper plate":"paper","paper cup":"paper","plastic cup":"paper","paper":"paper",
+  // baby
+  "diaper":"baby","wipes":"baby","baby food":"baby","formula":"baby","baby wipe":"baby",
+  // pet
+  "dog food":"pet","cat food":"pet","cat litter":"pet","litter":"pet","dog treat":"pet",
+  "pet food":"pet","pet ":"pet"
+};
+
+/* ---------- Persistence ---------- */
+const LS_RULES = "aislesorter_rules_v1";
+const LS_STORE = "aislesorter_store_v1";
+const LS_LIST  = "aislesorter_list_v1";
+const LS_ZOOM  = "aislesorter_zoom_v1";
+function learnedRules(){ try{return JSON.parse(localStorage.getItem(LS_RULES))||{}}catch(e){return {}} }
+function saveLearned(r){ localStorage.setItem(LS_RULES, JSON.stringify(r)); }
+function allRules(){ return Object.assign({}, DEFAULT_RULES, learnedRules()); }
+
+/* Working shopping list survives closing the app (items, quantities, what's checked off). */
+function saveList(){
+  try{ localStorage.setItem(LS_LIST, JSON.stringify({
+    store: (document.getElementById("store")||{}).value || "",
+    items: ITEMS.map(it=>({name:it.name, qty:it.qty||"", done:!!it.done}))
+  })); }catch(e){}
+}
+function loadList(){
+  try{ const d=JSON.parse(localStorage.getItem(LS_LIST)); if(d && Array.isArray(d.items)) return d; }catch(e){}
+  return null;
+}
+
+/* Text size: applied as a uniform zoom, saved, larger by default for phone reading. */
+function getZoom(){ const z=parseFloat(localStorage.getItem(LS_ZOOM)); return isNaN(z)?1.3:z; }
+function applyZoom(z){ document.documentElement.style.zoom = z; localStorage.setItem(LS_ZOOM, String(z)); }
+function bumpZoom(d){ applyZoom(Math.min(2.2, Math.max(0.9, Math.round((getZoom()+d)*10)/10))); }
+applyZoom(getZoom());
+
+/* ---------- Parsing ----------
+   Pull individual grocery items out of a natural-language text. */
+const FILLER_LEAD = /^(?:can you (?:grab|get|pick up|buy)|could you (?:grab|get)|please (?:grab|get|pick up)|grab|get|pick up|buy|need|we need|i need|also|and|some|a few|a couple of|a couple|a |an |the |of )/i;
+const STOP_PHRASES = /\b(?:thanks|thank you|please|love you|when you|if you|at the store|from the store|on your way|don'?t forget|btw|by the way)\b/gi;
+
+/* Phrases that contain "and"/"&" but are ONE item — protect them from the splitter. */
+const PROTECT = ["free and clear","half and half","mac and cheese","macaroni and cheese",
+                 "salt and pepper","oil and vinegar","arm and hammer","pork and beans",
+                 "chips and salsa","peanut butter and jelly"];
+const JOIN = "";   // placeholder that stands in for the connector while we split
+function phraseRegex(p){
+  const parts = p.split(/\s+and\s+/i).map(s =>
+    s.replace(/[.*+?^${}()|[\]\\]/g,"\\$&").replace(/\s+/g,"\\s+"));
+  return new RegExp(parts.join("\\s+(?:and|&)\\s+"),"gi");
+}
+/* Shorthand the texter might use -> the real item name (also fixes classification). */
+const ABBREV = {
+  "oj":"orange juice", "pb":"peanut butter", "tp":"toilet paper", "pt":"paper towels",
+  "mac n cheese":"macaroni and cheese", "tots":"tater tots", "veggies":"vegetables",
+  "taters":"potatoes"
+};
+function expandAbbrev(s){
+  // expand only when the whole item IS the shorthand, so "tater tots" doesn't re-expand "tots"
+  const key = s.trim().toLowerCase();
+  return ABBREV.hasOwnProperty(key) ? ABBREV[key] : s;
+}
+
+function protectPhrases(t){
+  let s = t;
+  for(const p of PROTECT){
+    s = s.replace(phraseRegex(p), m => m.replace(/\s+(?:and|&)\s+/gi, " "+JOIN+" "));
+  }
+  return s;
+}
+
+function parseItems(text){
+  if(!text) return [];
+  let t = text.replace(/[‘’]/g,"'").replace(/[“”]/g,'"');
+  t = protectPhrases(t);   // keep "free and clear" etc. from being split on "and"
+  // split sentences/lines into chunks first
+  let chunks = t.split(/[\n\r;.!?]+/);
+  let pieces = [];
+  for(let c of chunks){
+    c = c.replace(STOP_PHRASES, ",");
+    // split on commas and the word "and"
+    c.split(/,| and | & |\band\b/i).forEach(p=>pieces.push(p));
+  }
+  const out = [];
+  const seen = new Set();
+  for(let raw of pieces){
+    let s = raw.trim();
+    if(!s) continue;
+    s = s.replace(new RegExp("\\s*"+JOIN+"\\s*","g")," and ").trim();  // restore protected phrases
+    // pull a leading quantity like "2", "2 lbs", "a dozen", "3x"
+    let qty = "";
+    let m = s.match(/^(\d+\s*(?:x|lbs?|lb|oz|pounds?|dozen|pack|packs|ct|count|gallons?|gal|cans?|boxes?|box|bags?|bottles?|jars?|bunch(?:es)?)?)\b\.?\s*(?:of\s+)?/i);
+    if(m){ qty = m[1].trim(); s = s.slice(m[0].length); }
+    // trailing count: "milk x2", "paper towels x 2", "soda 2x", or a bare "bananas 6"
+    if(!qty){
+      let tm = s.match(/\s*[\(\[]?\s*(?:x\s*0*(\d+)|0*(\d+)\s*x)\s*[\)\]]?$/i)  // x2 / 2x / (x2)
+            || s.match(/\s+0*(\d+)\s*$/);                                        // bare " 6"
+      if(tm){
+        const n = tm[1] || tm[2];
+        if(n && +n>0){ qty = "x"+(+n); s = s.slice(0, tm.index).trim(); }
+      }
+    }
+    // strip leading filler words (may repeat)
+    let prev;
+    do{ prev = s; s = s.replace(FILLER_LEAD,"").trim(); } while(s!==prev);
+    // strip trailing filler
+    s = s.replace(/\b(?:please|too|also|as well)\s*$/i,"").trim();
+    s = s.replace(/^[^a-z0-9]+/i,"").replace(/[^a-z0-9%)\s]+$/i,"").trim();
+    s = expandAbbrev(s);   // OJ -> orange juice, etc.
+    if(s.length<2) continue;
+    if(/^(?:store|list|text|her|him|me|you|us|it)$/i.test(s)) continue;
+    const key = s.toLowerCase();
+    if(seen.has(key)) continue;
+    seen.add(key);
+    out.push({name:s, qty:qty, done:false});
+  }
+  return out;
+}
+
+/* ---------- Categorize one item ---------- */
+function categorize(name){
+  const n = name.toLowerCase();
+  const rules = allRules();
+  // match longest keyword that appears in the item
+  let best=null, bestLen=-1;
+  for(const kw in rules){
+    if(n.includes(kw) && kw.length>bestLen){ best=rules[kw]; bestLen=kw.length; }
+  }
+  return best || "other";
+}
+
+/* ---------- Render ---------- */
+let ITEMS = [];   // working list
+const $ = id => document.getElementById(id);
+
+function buildStoreSelect(){
+  const sel = $("store");
+  sel.innerHTML = "";
+  for(const k in STORES){
+    const o = document.createElement("option");
+    o.value=k; o.textContent=STORES[k].label; sel.appendChild(o);
+  }
+  const saved = localStorage.getItem(LS_STORE);
+  if(saved && STORES[saved]) sel.value = saved;
+  sel.onchange = ()=>{ localStorage.setItem(LS_STORE, sel.value); if(EDITING) renderEditor(); render(); };
+}
+
+function render(){
+  saveList();   // keep the saved copy in sync with whatever's on screen
+  const out = $("output");
+  out.innerHTML = "";
+  if(ITEMS.length===0){
+    out.innerHTML = `<div class="card empty">Paste a message above and tap <b>Build my list</b>.</div>`;
+    return;
+  }
+
+  // assign categories
+  ITEMS.forEach(it=> it.cat = categorize(it.name));
+
+  // top action bar + add item
+  const bar = document.createElement("div");
+  bar.className="card";
+  const total = ITEMS.length, done = ITEMS.filter(i=>i.done).length;
+  bar.innerHTML = `
+    <div class="row" style="justify-content:space-between">
+      <div><b>${total}</b> items <span class="pill">${done} done</span></div>
+      <div class="topbtns" style="margin:0">
+        <button class="ghost mini" id="copyBtn">Copy list</button>
+        <button class="ghost mini" id="resetChecks">Uncheck all</button>
+        <button class="ghost mini" id="newList">New list</button>
+      </div>
+    </div>
+    <div class="addrow">
+      <input id="addItem" placeholder="Add an item…" />
+      <button class="ghost" id="addBtn">Add</button>
+    </div>`;
+  out.appendChild(bar);
+
+  const storeKey = $("store").value;
+  const order = effectiveOrder(storeKey);
+  const aisles = layoutFor(storeKey).aisles;
+
+  // group — items follow their store's redirect (e.g. seafood -> frozen at Sam's)
+  const groups = {};
+  ITEMS.forEach((it,idx)=>{ const c=displayCat(storeKey,it.cat); (groups[c]=groups[c]||[]).push(idx); });
+
+  order.forEach(catKey=>{
+    const idxs = groups[catKey];
+    if(!idxs || idxs.length===0) return;
+    const d = DEPTS[catKey];
+    const sec = document.createElement("div");
+    sec.className="dept card";
+    const isOther = catKey==="other";
+    const badge = aisles[catKey] ? `<span class="aislebadge">${aisles[catKey]}</span>` : "";
+    sec.innerHTML = `<h2>${d.emoji} ${d.label}${badge}<span class="cnt">${idxs.length}</span></h2>`;
+    const ul = document.createElement("ul");
+    idxs.forEach(i=>{
+      const it = ITEMS[i];
+      const li = document.createElement("li");
+      li.className="item"+(it.done?" done":"")+(isOther?" unknown":"");
+      // checkbox
+      const ck = document.createElement("div");
+      ck.className="check"; ck.textContent = it.done?"✓":"";
+      ck.onclick=()=>{ it.done=!it.done; render(); };
+      li.appendChild(ck);
+      // name
+      const nm = document.createElement("span");
+      nm.className="name"; nm.textContent = it.name;
+      nm.onclick=()=>{ it.done=!it.done; render(); };
+      li.appendChild(nm);
+      if(it.qty){ const q=document.createElement("span"); q.className="qty"; q.textContent=it.qty; li.appendChild(q); }
+      // for unknown items: a dropdown to teach it
+      if(isOther){
+        const as = document.createElement("select");
+        as.className="assign";
+        const ph=document.createElement("option"); ph.value=""; ph.textContent="Put in…"; as.appendChild(ph);
+        for(const k in DEPTS){ if(k==="other")continue;
+          const o=document.createElement("option"); o.value=k; o.textContent=DEPTS[k].label; as.appendChild(o); }
+        as.onchange=()=>{ if(as.value){ teach(it.name, as.value); render(); } };
+        li.appendChild(as);
+      }
+      // delete
+      const del=document.createElement("button"); del.className="del"; del.textContent="×";
+      del.title="Remove"; del.onclick=()=>{ ITEMS.splice(i,1); render(); };
+      li.appendChild(del);
+      ul.appendChild(li);
+    });
+    sec.appendChild(ul);
+    if(isOther){
+      const h=document.createElement("p"); h.className="hint";
+      h.style.marginTop="8px";
+      h.textContent="Tip: pick a department for these and the app will remember it next time.";
+      sec.appendChild(h);
+    }
+    out.appendChild(sec);
+  });
+
+  // wire up bar buttons
+  $("addBtn").onclick = ()=>{
+    const v=$("addItem").value.trim();
+    if(v){ ITEMS.push({name:v,qty:"",done:false}); $("addItem").value=""; render(); }
+  };
+  $("addItem").onkeydown=(e)=>{ if(e.key==="Enter") $("addBtn").click(); };
+  $("resetChecks").onclick=()=>{ ITEMS.forEach(i=>i.done=false); render(); };
+  $("copyBtn").onclick=copyList;
+  $("newList").onclick=()=>{ if(confirm("Clear this list and start a new one?")){ ITEMS=[]; saveList(); render(); } };
+}
+
+/* Teach the app a rule for an item (whole lowercased name -> category) */
+function teach(name, cat){
+  const r = learnedRules();
+  r[name.toLowerCase()] = cat;
+  saveLearned(r);
+}
+
+function copyList(){
+  const storeKey=$("store").value, order=effectiveOrder(storeKey);
+  const aisles=layoutFor(storeKey).aisles;
+  const groups={};
+  ITEMS.forEach(it=>{const c=displayCat(storeKey,it.cat);(groups[c]=groups[c]||[]).push(it);});
+  let lines=[STORES[storeKey].label+" — shopping list",""];
+  order.forEach(k=>{
+    const g=groups[k]; if(!g||!g.length)return;
+    const ais = aisles[k] ? " ("+aisles[k]+")" : "";
+    lines.push(DEPTS[k].emoji+" "+DEPTS[k].label.toUpperCase()+ais);
+    g.forEach(it=>lines.push("  • "+it.name+(it.qty?" ("+it.qty+")":"")));
+    lines.push("");
+  });
+  const txt=lines.join("\n");
+  navigator.clipboard?.writeText(txt).then(
+    ()=>flash("Copied!"),
+    ()=>flash("Couldn't copy")
+  );
+}
+function flash(msg){
+  const f=document.createElement("div");
+  f.textContent=msg;
+  f.style.cssText="position:fixed;left:50%;bottom:30px;transform:translateX(-50%);background:#16202b;color:#fff;padding:10px 18px;border-radius:20px;font-size:14px;z-index:99;opacity:.95";
+  document.body.appendChild(f); setTimeout(()=>f.remove(),1400);
+}
+
+/* ---------- Layout editor ---------- */
+let EDITING = false;
+function toggleEditor(){ EDITING = !EDITING; renderEditor(); if(EDITING) $("editor").scrollIntoView({behavior:"smooth",block:"start"}); }
+
+function moveDept(storeKey, key, dir){
+  const L = layoutFor(storeKey);
+  const order = L.order.filter(k=>k!=="other");        // never move "other"
+  const i = order.indexOf(key);
+  const j = i + dir;
+  if(i<0 || j<0 || j>=order.length) return;
+  order.splice(i,1); order.splice(j,0,key);
+  order.push("other");
+  patchLayout(storeKey, {order});
+  renderEditor();
+}
+function toggleHide(storeKey, key){
+  const L = layoutFor(storeKey);
+  const hidden = Object.assign({}, L.hidden);
+  hidden[key] = !hidden[key];
+  patchLayout(storeKey, {hidden});
+  renderEditor();
+}
+function setAisle(storeKey, key, val){
+  const L = layoutFor(storeKey);
+  const aisles = Object.assign({}, L.aisles);
+  if(val.trim()) aisles[key]=val.trim(); else delete aisles[key];
+  patchLayout(storeKey, {aisles});
+}
+function setRedirect(storeKey, key, target){
+  // target = a dept key to merge into, or null to cancel a default merge (own section)
+  const L = layoutFor(storeKey);
+  const redirect = Object.assign({}, L.savedRedirect);
+  redirect[key] = target;          // null is meaningful: it overrides a store default
+  patchLayout(storeKey, {redirect});
+  renderEditor();
+}
+function resetLayout(storeKey){
+  const all = allLayouts(); delete all[storeKey]; saveLayouts(all);
+  renderEditor();
+}
+
+function renderEditor(){
+  const host = $("editor");
+  host.innerHTML = "";
+  $("customizeBtn").textContent = EDITING ? "✕ Close layout editor"
+                                          : "⚙️ Customize this store's layout";
+  if(!EDITING) { if(ITEMS.length) render(); return; }
+
+  const storeKey = $("store").value;
+  const L = layoutFor(storeKey);
+  const card = document.createElement("div");
+  card.className = "card ed";
+  card.innerHTML = `
+    <h2>Customize: ${STORES[storeKey].label}</h2>
+    <p class="sub">Put the departments in the order you walk the store — top of the list is the
+       first thing you reach. Use ▲▼ to move, the eye to hide a department you never shop, and the
+       small box to jot an aisle number. Some departments can be <b>merged</b> into another
+       (at Sam's, Seafood is merged into Frozen) — use the merge / Separate button to switch.
+       Saved automatically for this store.</p>`;
+  const list = document.createElement("div");
+
+  // editable rows = everything except the fixed "other" catch-all
+  const keys = L.order.filter(k=>k!=="other");
+  keys.forEach((key,idx)=>{
+    const d = DEPTS[key];
+    const isHidden = !!L.hidden[key];
+    const target = L.redirect[key];                       // currently merged into this dept?
+    const baseTarget = (STORES[storeKey].redirect||{})[key];  // a merge offered for this store?
+    const row = document.createElement("div");
+    row.className = "erow"+((isHidden||target)?" hidden":"");
+
+    const num = document.createElement("span"); num.className="num"; num.textContent=(idx+1);
+    const lbl = document.createElement("span"); lbl.className="lbl";
+    lbl.textContent = d.emoji+" "+d.label;
+
+    if(target){
+      // merged elsewhere — show where, and offer to split it back out
+      const note = document.createElement("span"); note.className="lbl";
+      note.style.flex="0 0 auto"; note.style.fontWeight="500"; note.style.color="var(--muted)";
+      note.style.fontSize="13px"; note.textContent = "→ in "+DEPTS[target].label;
+      const split = document.createElement("button"); split.className="eye"; split.style.width="auto";
+      split.style.padding="0 10px"; split.style.fontSize="13px"; split.textContent="Separate";
+      split.onclick=()=>setRedirect(storeKey,key,null);   // null cancels the merge
+      row.append(num,lbl,note,split);
+    } else {
+      const ais = document.createElement("input");
+      ais.className="aisle"; ais.placeholder="Aisle"; ais.value = L.aisles[key]||"";
+      ais.oninput = ()=> setAisle(storeKey, key, ais.value);
+      const up = document.createElement("button"); up.className="mv"; up.textContent="▲";
+      up.disabled = idx===0; up.onclick=()=>moveDept(storeKey,key,-1);
+      const down = document.createElement("button"); down.className="mv"; down.textContent="▼";
+      down.disabled = idx===keys.length-1; down.onclick=()=>moveDept(storeKey,key,1);
+      const eye = document.createElement("button"); eye.className="eye";
+      eye.textContent = isHidden ? "🚫" : "👁️"; eye.title = isHidden?"Hidden — tap to show":"Tap to hide";
+      eye.onclick=()=>toggleHide(storeKey,key);
+      row.append(num,lbl,ais,up,down,eye);
+      if(baseTarget){
+        // this store offers to merge the dept (e.g. Seafood -> Frozen at Sam's)
+        const merge = document.createElement("button"); merge.className="eye"; merge.style.width="auto";
+        merge.style.padding="0 10px"; merge.style.fontSize="13px";
+        merge.textContent="Merge → "+DEPTS[baseTarget].label;
+        merge.onclick=()=>setRedirect(storeKey,key,baseTarget);
+        row.append(merge);
+      }
+    }
+    list.appendChild(row);
+  });
+  card.appendChild(list);
+
+  const foot = document.createElement("div");
+  foot.className="foot";
+  const done = document.createElement("button"); done.className="primary"; done.style.flex="1";
+  done.textContent="Done"; done.onclick=toggleEditor;
+  const reset = document.createElement("button"); reset.className="ghost";
+  reset.textContent="Reset to default"; reset.onclick=()=>resetLayout(storeKey);
+  foot.append(done,reset);
+  card.appendChild(foot);
+
+  host.appendChild(card);
+  if(ITEMS.length) render();   // keep the live list in sync underneath
+}
+
+/* ---------- Wire up ---------- */
+buildStoreSelect();
+$("customizeBtn").onclick = toggleEditor;
+$("build").onclick = ()=>{
+  ITEMS = parseItems($("raw").value);
+  render();
+  if(ITEMS.length) document.getElementById("output").scrollIntoView({behavior:"smooth",block:"start"});
+};
+$("clearText").onclick = ()=>{ $("raw").value=""; $("raw").focus(); };
+$("sizeUp").onclick   = ()=> bumpZoom(+0.1);
+$("sizeDown").onclick = ()=> bumpZoom(-0.1);
+
+/* On open: shared text wins; otherwise restore the last saved list. */
+(function(){
+  const p=new URLSearchParams(location.search);
+  const shared=p.get("text")||p.get("share")||p.get("title");
+  if(shared){
+    $("raw").value=shared; ITEMS=parseItems(shared);
+  } else {
+    const d=loadList();
+    if(d){
+      if(d.store && STORES[d.store]){ $("store").value=d.store; localStorage.setItem(LS_STORE,d.store); }
+      ITEMS = d.items.map(it=>({name:it.name, qty:it.qty||"", done:!!it.done}));
+    }
+  }
+  render();
+})();
+
+/* Register the service worker (only when hosted over http/https, not as a local file). */
+if("serviceWorker" in navigator && location.protocol.startsWith("http")){
+  window.addEventListener("load", ()=> navigator.serviceWorker.register("sw.js").catch(()=>{}));
+}
+</script>
+</body>
+</html>
