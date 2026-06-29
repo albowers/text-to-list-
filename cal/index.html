@@ -1,0 +1,561 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#15803d">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icon-180.png">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Quick Cal">
+<title>Quick Cal</title>
+<style>
+  :root{
+    --bg:#f4f6f5; --card:#fff; --ink:#16231b; --muted:#5d6b62;
+    --accent:#15803d; --accent-soft:#d9f2e2; --line:#e4e9e5;
+    --cal:#15803d; --pro:#2563eb; --fib:#b45309;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+       background:var(--bg);color:var(--ink);padding-bottom:60px}
+  header{position:sticky;top:0;z-index:5;background:var(--accent);color:#fff;
+         padding:14px 16px;padding-top:calc(14px + env(safe-area-inset-top));
+         box-shadow:0 2px 8px rgba(0,0,0,.12)}
+  .hbar{display:flex;align-items:center;gap:10px}
+  .hbar .titles{flex:1;min-width:0}
+  header h1{margin:0;font-size:21px;font-weight:800}
+  header p{margin:2px 0 0;font-size:13px;opacity:.85}
+  .sizebtns{display:flex;gap:6px}
+  .sizebtns button{width:40px;height:40px;border-radius:9px;border:0;font-weight:800;font-size:18px;
+                   background:rgba(255,255,255,.18);color:#fff}
+  .wrap{max-width:680px;margin:0 auto;padding:14px}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:14px;
+        padding:14px;margin-bottom:13px;box-shadow:0 1px 2px rgba(16,35,27,.04)}
+  button{border:0;border-radius:10px;font-family:inherit;cursor:pointer}
+  .primary{background:var(--accent);color:#fff;font-weight:650;padding:12px 16px;font-size:15px}
+  .ghost{background:#eef1ef;color:var(--ink);font-weight:600;padding:10px 14px;font-size:14px}
+  .mini{padding:7px 11px;font-size:13px}
+
+  /* date bar */
+  .datebar{display:flex;align-items:center;justify-content:space-between;gap:8px}
+  .datebar .nav{width:42px;height:42px;font-size:20px;background:#eef1ef;border-radius:10px}
+  .datebar .day{flex:1;text-align:center}
+  .datebar .day b{font-size:17px;display:block}
+  .datebar .day span{font-size:12px;color:var(--muted)}
+  .todaybtn{font-size:12px;color:var(--accent);background:none;padding:4px}
+
+  /* goals */
+  .goalrow{margin:11px 0}
+  .goalrow:first-child{margin-top:4px}
+  .goalhead{display:flex;justify-content:space-between;align-items:baseline;font-size:14px;margin-bottom:5px}
+  .goalhead .lab{font-weight:700}
+  .goalhead .val{color:var(--muted);font-variant-numeric:tabular-nums}
+  .goalhead .val b{color:var(--ink)}
+  .bar{height:12px;background:#eef1ef;border-radius:8px;overflow:hidden}
+  .bar > i{display:block;height:100%;border-radius:8px;transition:width .25s}
+  .b-cal>i{background:var(--cal)} .b-pro>i{background:var(--pro)} .b-fib>i{background:var(--fib)}
+  .bar.over>i{background:#dc2626 !important}
+  .gear{float:right;background:none;font-size:18px;padding:0 2px;color:var(--muted)}
+
+  /* search / quick add */
+  .search{width:100%;border:1px solid var(--line);border-radius:11px;padding:13px;font-size:17px;background:#fbfcfb}
+  .search:focus,input:focus,select:focus{outline:2px solid var(--accent-soft);border-color:var(--accent)}
+  .results{margin-top:8px}
+  .res{display:flex;align-items:center;gap:10px;padding:11px 6px;border-bottom:1px solid #f1f4f2;cursor:pointer}
+  .res:last-child{border-bottom:0}
+  .res .nm{flex:1;min-width:0}
+  .res .nm b{font-size:16px;font-weight:600}
+  .res .nm span{display:block;font-size:12px;color:var(--muted)}
+  .res .kc{font-size:14px;color:var(--muted);font-variant-numeric:tabular-nums;white-space:nowrap}
+  .res .plus{width:38px;height:38px;border-radius:9px;background:var(--accent-soft);color:var(--accent);
+             font-size:22px;font-weight:700;flex:0 0 auto}
+  .res.new .nm b{color:var(--accent)}
+
+  /* favorites chips */
+  .chips{display:flex;flex-wrap:wrap;gap:8px}
+  .chip{background:var(--accent-soft);color:#0f5c2e;border-radius:20px;padding:9px 13px;font-size:14px;
+        font-weight:600;display:flex;align-items:center;gap:7px}
+  .chip small{font-weight:500;opacity:.75}
+  .chips .empty{color:var(--muted);font-size:13px}
+
+  /* today log */
+  h2.sec{font-size:14px;color:var(--muted);margin:0 0 8px;text-transform:uppercase;letter-spacing:.4px}
+  .entry{display:flex;align-items:center;gap:9px;padding:10px 2px;border-bottom:1px solid #f1f4f2}
+  .entry:last-child{border-bottom:0}
+  .entry .nm{flex:1;min-width:0}
+  .entry .nm b{font-size:16px;font-weight:600}
+  .entry .nm span{display:block;font-size:12px;color:var(--muted)}
+  .qtybox{display:flex;align-items:center;gap:2px}
+  .qtybox button{width:30px;height:30px;background:#eef1ef;border-radius:8px;font-size:17px;font-weight:700}
+  .qtybox .q{min-width:30px;text-align:center;font-size:14px;font-variant-numeric:tabular-nums}
+  .entry .del{color:#b04646;background:none;font-size:20px;padding:2px 4px}
+  .totrow{display:flex;justify-content:space-between;font-size:13px;color:var(--muted);
+          padding-top:10px;margin-top:4px;border-top:2px solid var(--accent-soft)}
+  .empty-log{text-align:center;color:var(--muted);padding:18px 8px;font-size:14px}
+
+  /* forms */
+  .field{margin:9px 0}
+  .field label{display:block;font-size:12px;font-weight:700;color:var(--muted);margin-bottom:4px}
+  .field input{width:100%;border:1px solid var(--line);border-radius:9px;padding:10px;font-size:16px;background:#fbfcfb}
+  .three{display:flex;gap:8px}
+  .three .field{flex:1}
+  .formfoot{display:flex;gap:9px;margin-top:12px}
+  .pillc{font-size:11px;font-weight:700;padding:2px 8px;border-radius:20px;color:#fff}
+  .flash{position:fixed;left:50%;bottom:26px;transform:translateX(-50%);background:#16231b;color:#fff;
+         padding:10px 18px;border-radius:20px;font-size:14px;z-index:99;opacity:.96}
+</style>
+</head>
+<body>
+<header>
+  <div class="hbar">
+    <div class="titles">
+      <h1>🍎 Quick Cal</h1>
+      <p>Tap your usuals — it learns and totals the rest</p>
+    </div>
+    <div class="sizebtns">
+      <button id="sizeDown" aria-label="Smaller text">A−</button>
+      <button id="sizeUp" aria-label="Bigger text">A+</button>
+    </div>
+  </div>
+</header>
+
+<div class="wrap">
+  <div class="card datebar" id="dateCard"></div>
+  <div class="card" id="goalCard"></div>
+  <div class="card">
+    <input class="search" id="search" placeholder="Search or add a food…" autocomplete="off">
+    <div class="results" id="results"></div>
+  </div>
+  <div class="card">
+    <h2 class="sec">⭐ Your usuals — tap to log</h2>
+    <div class="chips" id="favs"></div>
+  </div>
+  <div class="card" id="mealCard">
+    <h2 class="sec">🍽️ Meals — tap to log all
+      <button class="todaybtn" id="mealEdit" style="float:right">edit</button></h2>
+    <div class="chips" id="meals"></div>
+  </div>
+  <div class="card">
+    <h2 class="sec" id="logTitle">Today's food</h2>
+    <div id="log"></div>
+  </div>
+</div>
+
+<script>
+/* ---------------- Built-in starter foods (avg per typical serving) ----------------
+   Each: name, serving label, calories, protein(g), fiber(g). Edit anytime in the app. */
+const BUILTIN = [
+  ["Chicken breast","6 oz cooked",280,53,0],
+  ["Chicken tenders","3 pieces",250,16,1],
+  ["Chicken thigh","1 thigh cooked",180,22,0],
+  ["Ground beef 85/15","4 oz cooked",230,22,0],
+  ["Salmon","6 oz",350,40,0],
+  ["Shrimp","4 oz",120,23,0],
+  ["Tuna (canned)","1 can",180,40,0],
+  ["Deli turkey","3 oz",90,18,0],
+  ["Bacon","2 slices",80,6,0],
+  ["Egg","1 large",70,6,0],
+  ["Greek yogurt","1 cup",130,22,0],
+  ["Cottage cheese","1 cup",180,24,0],
+  ["Cheddar cheese","1 oz",110,7,0],
+  ["Milk 2%","1 cup",120,8,0],
+  ["Whey protein","1 scoop",120,24,1],
+  ["Oatmeal","1 cup cooked",150,5,4],
+  ["White rice","1 cup cooked",205,4,1],
+  ["Brown rice","1 cup cooked",215,5,4],
+  ["Pasta","1 cup cooked",220,8,3],
+  ["Bread","1 slice",80,3,1],
+  ["Bagel","1 medium",250,10,2],
+  ["Sweet potato","1 medium",100,2,4],
+  ["Black beans","1 cup",227,15,15],
+  ["Peanut butter","2 tbsp",190,7,2],
+  ["Almonds","1 oz (~23)",165,6,3],
+  ["Banana","1 medium",105,1,3],
+  ["Apple","1 medium",95,0,4],
+  ["Orange","1 medium",62,1,3],
+  ["Strawberries","1 cup",50,1,3],
+  ["Blueberries","1 cup",85,1,4],
+  ["Avocado","1/2",120,2,5],
+  ["Broccoli","1 cup",55,4,5],
+  ["Mixed green salad","2 cups plain",20,2,2],
+  ["Carrots","1 cup",50,1,4],
+  ["Eggplant parmesan","1 serving",420,18,8],
+  ["Pizza","1 slice",285,12,2],
+  ["Cheeseburger","1 sandwich",450,25,2],
+  ["Coffee (black)","1 cup",5,0,0]
+];
+
+/* ---------------- Storage ---------------- */
+const K_FOODS="qc_foods_v1", K_USAGE="qc_usage_v1", K_LOG="qc_log_v1",
+      K_GOALS="qc_goals_v1", K_ZOOM="qc_zoom_v1", K_MEALS="qc_meals_v1", K_APIKEY="qc_usda_key_v1";
+const get=(k,f)=>{ try{const v=JSON.parse(localStorage.getItem(k)); return v==null?f:v;}catch(e){return f;} };
+const put=(k,v)=>{ try{localStorage.setItem(k,JSON.stringify(v));}catch(e){} };
+
+function userFoods(){ return get(K_FOODS,{}); }       // nameLower -> {name,serving,cal,p,fiber}
+function usage(){ return get(K_USAGE,{}); }            // nameLower -> count
+function allLogs(){ return get(K_LOG,{}); }            // dateStr -> [ {name,serving,cal,p,fiber,qty} ]
+function goals(){ return get(K_GOALS,{cal:2000,p:100,fiber:30}); }
+
+/* merged library: built-ins overlaid with user edits/additions */
+function library(){
+  const map={};
+  BUILTIN.forEach(b=>{ map[b[0].toLowerCase()]={name:b[0],serving:b[1],cal:b[2],p:b[3],fiber:b[4]}; });
+  const u=userFoods();
+  for(const k in u) map[k]=u[k];
+  return map;
+}
+function foodByName(name){ return library()[name.toLowerCase()]||null; }
+
+/* ---------------- Date handling ---------------- */
+let viewDate = todayStr();
+function todayStr(d){ d=d||new Date(); return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0"); }
+function parseDate(s){ const [y,m,d]=s.split("-").map(Number); return new Date(y,m-1,d); }
+function shiftDate(s,delta){ const d=parseDate(s); d.setDate(d.getDate()+delta); return todayStr(d); }
+function prettyDate(s){
+  const d=parseDate(s), t=todayStr();
+  const days=["Sun","Mon","Tue","Wed","Thu","Fri","Sat"], mon=["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+  let lab = days[d.getDay()]+", "+mon[d.getMonth()]+" "+d.getDate();
+  let tag = s===t ? "Today" : (s===shiftDate(t,-1) ? "Yesterday" : "");
+  return {lab,tag};
+}
+
+/* ---------------- Logging ---------------- */
+function todaysLog(){ return allLogs()[viewDate]||[]; }
+function saveLog(arr){ const a=allLogs(); a[viewDate]=arr; put(K_LOG,a); }
+
+function addToLog(food, qty){           // mutate log + usage, no re-render
+  qty = qty||1;
+  const arr = todaysLog();
+  const same = arr.find(e=>e.name===food.name && e.cal===food.cal && e.p===food.p && e.fiber===food.fiber);
+  if(same){ same.qty = Math.round((same.qty+qty)*100)/100; }
+  else arr.push({name:food.name,serving:food.serving||"",cal:food.cal,p:food.p,fiber:food.fiber,qty});
+  saveLog(arr);
+  const u=usage(); u[food.name.toLowerCase()]=(u[food.name.toLowerCase()]||0)+qty; put(K_USAGE,u);
+}
+function logFood(food, qty){ addToLog(food,qty); renderAll(); flash("Logged "+food.name); }
+function logMeal(meal){ meal.items.forEach(it=>addToLog(it, it.qty||1)); renderAll(); flash("Logged "+meal.name); }
+function setQty(i,q){ const arr=todaysLog(); if(!arr[i])return; q=Math.round(q*100)/100;
+  if(q<=0){ arr.splice(i,1); } else { arr[i].qty=q; } saveLog(arr); renderAll(); }
+function delEntry(i){ const arr=todaysLog(); arr.splice(i,1); saveLog(arr); renderAll(); }
+
+/* ---------------- Totals ---------------- */
+function totals(){
+  return todaysLog().reduce((t,e)=>{ t.cal+=e.cal*e.qty; t.p+=e.p*e.qty; t.fiber+=e.fiber*e.qty; return t; },
+                            {cal:0,p:0,fiber:0});
+}
+
+/* ---------------- Rendering ---------------- */
+const $=id=>document.getElementById(id);
+function r(n){ return Math.round(n); }
+function r1(n){ return Math.round(n*10)/10; }
+
+function renderDate(){
+  const {lab,tag}=prettyDate(viewDate);
+  const c=$("dateCard");
+  c.innerHTML="";
+  const prev=mk("button","nav","‹"); prev.onclick=()=>{viewDate=shiftDate(viewDate,-1);renderAll();};
+  const next=mk("button","nav","›"); next.onclick=()=>{viewDate=shiftDate(viewDate,1);renderAll();};
+  const day=document.createElement("div"); day.className="day";
+  day.innerHTML="<b>"+lab+"</b>"+(tag?"<span>"+tag+"</span>":"<span>&nbsp;</span>");
+  if(viewDate!==todayStr()){
+    const tb=mk("button","todaybtn","Jump to today"); tb.onclick=()=>{viewDate=todayStr();renderAll();};
+    day.appendChild(tb);
+  }
+  c.append(prev,day,next);
+}
+
+function renderGoals(){
+  const g=goals(), t=totals(), c=$("goalCard"); c.innerHTML="";
+  const gear=mk("button","gear","⚙️"); gear.title="Edit goals"; gear.onclick=openGoals; c.appendChild(gear);
+  c.appendChild(bar("Calories","cal",t.cal,g.cal,"b-cal",""));
+  c.appendChild(bar("Protein","pro",t.p,g.p,"b-pro","g"));
+  c.appendChild(bar("Fiber","fib",t.fiber,g.fiber,"b-fib","g"));
+}
+function bar(label,key,val,goal,cls,unit){
+  const row=document.createElement("div"); row.className="goalrow";
+  const pct = goal>0 ? Math.min(100,(val/goal)*100) : 0;
+  const over = goal>0 && val>goal;
+  const left = goal>0 ? (goal-val) : 0;
+  const valTxt = key==="cal"? r(val) : r1(val);
+  const goalTxt = key==="cal"? r(goal): r1(goal);
+  const leftTxt = over ? ("+"+(key==="cal"?r(val-goal):r1(val-goal))+" over")
+                       : (goal>0 ? (key==="cal"?r(left):r1(left))+unit+" left" : "");
+  row.innerHTML =
+    '<div class="goalhead"><span class="lab">'+label+'</span>'+
+    '<span class="val"><b>'+valTxt+unit+'</b> / '+goalTxt+unit+' &nbsp;·&nbsp; '+leftTxt+'</span></div>'+
+    '<div class="bar '+cls+(over?" over":"")+'"><i style="width:'+pct+'%"></i></div>';
+  return row;
+}
+
+function renderFavs(){
+  const u=usage(), lib=library();
+  const names=Object.keys(u).filter(k=>lib[k]).sort((a,b)=>u[b]-u[a]).slice(0,12);
+  const host=$("favs"); host.innerHTML="";
+  if(names.length===0){
+    // seed with a few sensible starters until the user builds history
+    ["egg","chicken breast","greek yogurt","banana","oatmeal","coffee (black)"].forEach(k=>{ if(lib[k]) names.push(k); });
+  }
+  if(names.length===0){ host.innerHTML='<span class="empty">Log a few foods and your favorites show up here.</span>'; return; }
+  names.forEach(k=>{
+    const f=lib[k];
+    const chip=document.createElement("button"); chip.className="chip";
+    chip.innerHTML=f.name+" <small>"+r(f.cal)+"</small>";
+    chip.onclick=()=>logFood(f,1);
+    host.appendChild(chip);
+  });
+}
+
+function renderLog(){
+  const {tag}=prettyDate(viewDate);
+  $("logTitle").textContent = (tag||prettyDate(viewDate).lab)+" food";
+  const arr=todaysLog(), host=$("log"); host.innerHTML="";
+  if(arr.length===0){ host.innerHTML='<div class="empty-log">Nothing logged yet. Tap a usual above, or search to add.</div>'; return; }
+  arr.forEach((e,i)=>{
+    const row=document.createElement("div"); row.className="entry";
+    const nm=document.createElement("div"); nm.className="nm";
+    nm.innerHTML="<b>"+e.name+"</b><span>"+r(e.cal*e.qty)+" cal · "+r1(e.p*e.qty)+"g protein · "+r1(e.fiber*e.qty)+"g fiber"+
+                 (e.serving?" · "+e.serving:"")+"</span>";
+    const qb=document.createElement("div"); qb.className="qtybox";
+    const minus=mk("button","","−"); minus.onclick=()=>setQty(i,e.qty-(e.qty>1?1:0.5));
+    const q=document.createElement("span"); q.className="q"; q.textContent="×"+e.qty;
+    const plus=mk("button","","+"); plus.onclick=()=>setQty(i,e.qty+1);
+    qb.append(minus,q,plus);
+    const del=mk("button","del","×"); del.onclick=()=>delEntry(i);
+    row.append(nm,qb,del);
+    host.appendChild(row);
+  });
+  const t=totals();
+  const tr=document.createElement("div"); tr.className="totrow";
+  tr.innerHTML="<span><b>Total</b></span><span><b>"+r(t.cal)+"</b> cal · "+r1(t.p)+"g protein · "+r1(t.fiber)+"g fiber</span>";
+  host.appendChild(tr);
+  const sb=mk("button","ghost mini","💾 Save these as a meal"); sb.style.marginTop="11px";
+  sb.onclick=saveCurrentAsMeal; host.appendChild(sb);
+}
+
+/* ---------------- Search / add ---------------- */
+function renderResults(){
+  const q=$("search").value.trim(), host=$("results"); host.innerHTML="";
+  if(!q){ return; }
+  const lib=library(), ql=q.toLowerCase();
+  let hits=Object.values(lib).filter(f=>f.name.toLowerCase().includes(ql));
+  const u=usage();
+  hits.sort((a,b)=>(u[b.name.toLowerCase()]||0)-(u[a.name.toLowerCase()]||0) || a.name.localeCompare(b.name));
+  hits.slice(0,8).forEach(f=>{
+    const row=document.createElement("div"); row.className="res";
+    row.innerHTML='<div class="nm"><b>'+f.name+'</b><span>'+(f.serving?f.serving+" · ":"")+r(f.cal)+' cal · '+r1(f.p)+'g P · '+r1(f.fiber)+'g fiber</span></div>'+
+                  '<button class="plus">+</button>';
+    row.onclick=()=>{ logFood(f,1); $("search").value=""; renderResults(); };
+    host.appendChild(row);
+  });
+  const exact=Object.values(lib).some(f=>f.name.toLowerCase()===ql);
+  if(!exact){
+    const row=document.createElement("div"); row.className="res new";
+    row.innerHTML='<div class="nm"><b>＋ Add “'+esc(q)+'”</b><span>new food — set its calories once</span></div><button class="plus">+</button>';
+    row.onclick=()=>openNewFood(q);
+    host.appendChild(row);
+  }
+  // USDA database lookup (auto-fills calories for foods not in your list)
+  const urow=document.createElement("div"); urow.className="res new";
+  urow.innerHTML='<div class="nm"><b>🔎 Look up “'+esc(q)+'” in USDA</b><span>'+(usdaKey()?"pull average calories automatically":"free 1-time setup")+'</span></div><button class="plus">›</button>';
+  urow.onclick=()=>startUsda(q);
+  host.appendChild(urow);
+}
+
+function openNewFood(name, pre){
+  pre = pre||{};
+  const v = x => x==null?"":x;
+  modal(`
+    <h2 class="sec">New food</h2>
+    <div class="field"><label>Name</label><input id="nf_name" value="${esc(name)}"></div>
+    <div class="field"><label>Serving (optional, e.g. "6 oz", "1 cup")</label><input id="nf_serv" placeholder="1 serving" value="${esc(v(pre.serving))}"></div>
+    <div class="three">
+      <div class="field"><label>Calories</label><input id="nf_cal" type="number" inputmode="numeric" placeholder="0" value="${esc(v(pre.cal))}"></div>
+      <div class="field"><label>Protein g</label><input id="nf_p" type="number" inputmode="decimal" placeholder="0" value="${esc(v(pre.p))}"></div>
+      <div class="field"><label>Fiber g</label><input id="nf_f" type="number" inputmode="decimal" placeholder="0" value="${esc(v(pre.fiber))}"></div>
+    </div>
+    <div class="formfoot">
+      <button class="primary" style="flex:1" id="nf_save">Save & log it</button>
+      <button class="ghost" id="nf_cancel">Cancel</button>
+    </div>`);
+  $("nf_cancel").onclick=closeModal;
+  $("nf_save").onclick=()=>{
+    const nm=$("nf_name").value.trim(); if(!nm){ flash("Name required"); return; }
+    const food={name:nm, serving:$("nf_serv").value.trim(),
+                cal:+$("nf_cal").value||0, p:+$("nf_p").value||0, fiber:+$("nf_f").value||0};
+    const u=userFoods(); u[nm.toLowerCase()]=food; put(K_FOODS,u);
+    closeModal(); $("search").value=""; renderResults(); logFood(food,1);
+  };
+}
+
+function openGoals(){
+  const g=goals();
+  modal(`
+    <h2 class="sec">Daily goals</h2>
+    <div class="three">
+      <div class="field"><label>Calories</label><input id="g_cal" type="number" inputmode="numeric" value="${g.cal}"></div>
+      <div class="field"><label>Protein g</label><input id="g_p" type="number" inputmode="numeric" value="${g.p}"></div>
+      <div class="field"><label>Fiber g</label><input id="g_f" type="number" inputmode="numeric" value="${g.fiber}"></div>
+    </div>
+    <div class="formfoot">
+      <button class="primary" style="flex:1" id="g_save">Save goals</button>
+      <button class="ghost" id="g_cancel">Cancel</button>
+    </div>`);
+  $("g_cancel").onclick=closeModal;
+  $("g_save").onclick=()=>{
+    put(K_GOALS,{cal:+$("g_cal").value||0,p:+$("g_p").value||0,fiber:+$("g_f").value||0});
+    closeModal(); renderAll();
+  };
+}
+
+/* ---------------- Meals (one-tap combos) ---------------- */
+function meals(){ return get(K_MEALS,[]); }
+function saveMeals(m){ put(K_MEALS,m); }
+let MEAL_EDIT=false;
+
+function renderMeals(){
+  const host=$("meals"); host.innerHTML="";
+  const ms=meals();
+  if(ms.length===0){
+    host.innerHTML='<span class="empty">Log a few foods, then “Save these as a meal” to make a one-tap meal (e.g. your usual breakfast).</span>';
+    $("mealEdit").style.display="none"; return;
+  }
+  $("mealEdit").style.display="";
+  ms.forEach((m,idx)=>{
+    const cal=m.items.reduce((s,it)=>s+it.cal*(it.qty||1),0);
+    const chip=document.createElement("button"); chip.className="chip";
+    chip.innerHTML=esc(m.name)+" <small>"+r(cal)+"</small>";
+    if(MEAL_EDIT){
+      const x=mk("span","",""); x.textContent="✕"; x.style.cssText="margin-left:4px;color:#b04646;font-weight:800";
+      chip.appendChild(x);
+      chip.onclick=()=>{ if(confirm('Delete meal “'+m.name+'”?')){ const a=meals(); a.splice(idx,1); saveMeals(a); renderMeals(); } };
+    } else {
+      chip.onclick=()=>logMeal(m);
+    }
+    host.appendChild(chip);
+  });
+}
+function saveCurrentAsMeal(){
+  const arr=todaysLog(); if(!arr.length){ flash("Nothing to save"); return; }
+  modal(`
+    <h2 class="sec">Save as meal</h2>
+    <p style="font-size:13px;color:var(--muted);margin:0 0 8px">Saves the ${arr.length} item(s) currently logged as a one-tap meal.</p>
+    <div class="field"><label>Meal name</label><input id="m_name" placeholder="e.g. Usual breakfast"></div>
+    <div class="formfoot">
+      <button class="primary" style="flex:1" id="m_save">Save meal</button>
+      <button class="ghost" id="m_cancel">Cancel</button>
+    </div>`);
+  $("m_name").focus();
+  $("m_cancel").onclick=closeModal;
+  $("m_save").onclick=()=>{
+    const nm=$("m_name").value.trim(); if(!nm){ flash("Name required"); return; }
+    const items=todaysLog().map(e=>({name:e.name,serving:e.serving,cal:e.cal,p:e.p,fiber:e.fiber,qty:e.qty}));
+    const a=meals(); a.push({name:nm,items}); saveMeals(a);
+    closeModal(); renderMeals(); flash("Saved meal “"+nm+"”");
+  };
+}
+
+/* ---------------- USDA FoodData Central lookup ---------------- */
+function usdaKey(){ return localStorage.getItem(K_APIKEY) || ""; }
+function nutr(f,ids){ const a=f.foodNutrients||[]; for(const n of a){ if(ids.includes(n.nutrientId)) return n.value||0; } return 0; }
+function niceName(f){
+  let n=f.description||"Food";
+  if(/^[A-Z0-9 ,.'&%-]+$/.test(n)) n=n.toLowerCase().replace(/\b\w/g,c=>c.toUpperCase()); // de-shout branded
+  if(f.brandName) n=n+" ("+(f.brandName.charAt(0)+f.brandName.slice(1).toLowerCase())+")";
+  return n.length>54?n.slice(0,54)+"…":n;
+}
+async function usdaFetch(query){
+  const key = usdaKey() || "DEMO_KEY";
+  const url = "https://api.nal.usda.gov/fdc/v1/foods/search?api_key="+encodeURIComponent(key)+
+              "&query="+encodeURIComponent(query)+"&pageSize=12";
+  const res = await fetch(url);
+  if(!res.ok) throw new Error("HTTP "+res.status);
+  const data = await res.json();
+  return (data.foods||[]).map(f=>{
+    let factor=1, serving="per 100 g";
+    if(f.servingSize && /^(g|grm|gram)/i.test(f.servingSizeUnit||"")){ factor=f.servingSize/100; serving=r(f.servingSize)+" g"; }
+    if(f.householdServingFullText) serving = f.householdServingFullText;
+    return { name:niceName(f), serving,
+             cal:r(nutr(f,[1008,2047,2048])*factor),
+             p:r1(nutr(f,[1003])*factor),
+             fiber:r1(nutr(f,[1079,2033])*factor) };
+  }).filter(x=>x.cal>0);
+}
+function startUsda(query){
+  if(!usdaKey()){ openUsdaSetup(query); return; }
+  doUsda(query);
+}
+function doUsda(query){
+  modal('<h2 class="sec">USDA results for “'+esc(query)+'”</h2><div id="usdaList"><p style="color:var(--muted);font-size:14px">Searching…</p></div>'+
+        '<div class="formfoot"><button class="ghost" id="u_close" style="flex:1">Close</button></div>');
+  $("u_close").onclick=closeModal;
+  usdaFetch(query).then(list=>{
+    const host=$("usdaList"); if(!host) return; host.innerHTML="";
+    if(!list.length){ host.innerHTML='<p style="color:var(--muted);font-size:14px">No matches. Try a simpler name, or add it manually.</p>'; return; }
+    host.innerHTML='<p style="color:var(--muted);font-size:12px;margin:0 0 6px">Tap one to use its averages (you can tweak before saving).</p>';
+    list.forEach(f=>{
+      const row=document.createElement("div"); row.className="res";
+      row.innerHTML='<div class="nm"><b>'+esc(f.name)+'</b><span>'+esc(f.serving)+' · '+f.cal+' cal · '+f.p+'g P · '+f.fiber+'g fiber</span></div><button class="plus">+</button>';
+      row.onclick=()=>{ closeModal(); openNewFood(f.name, f); };
+      host.appendChild(row);
+    });
+  }).catch(err=>{
+    const host=$("usdaList"); if(host) host.innerHTML='<p style="color:#b04646;font-size:14px">Couldn’t reach USDA ('+esc(err.message)+'). Check your key/connection, or add the food manually.</p>';
+  });
+}
+function openUsdaSetup(query){
+  modal(`
+    <h2 class="sec">Turn on USDA lookup</h2>
+    <p style="font-size:13px;color:var(--muted);line-height:1.5;margin:0 0 10px">
+      Get a free USDA key (instant): open
+      <b>fdc.nal.usda.gov/api-key-signup.html</b>, enter your email, and paste the key below.
+      It’s stored only on this phone.</p>
+    <div class="field"><label>USDA API key</label><input id="u_key" placeholder="paste key here" value="${esc(usdaKey())}"></div>
+    <div class="formfoot">
+      <button class="primary" style="flex:1" id="u_save">Save${query?" & search":""}</button>
+      <button class="ghost" id="u_cancel">Cancel</button>
+    </div>`);
+  $("u_cancel").onclick=closeModal;
+  $("u_save").onclick=()=>{
+    const k=$("u_key").value.trim(); if(k) localStorage.setItem(K_APIKEY,k); else localStorage.removeItem(K_APIKEY);
+    closeModal(); if(query && k) doUsda(query);
+  };
+}
+
+/* ---------------- Small helpers ---------------- */
+function mk(tag,cls,txt){ const e=document.createElement(tag); if(cls)e.className=cls; if(txt!=null)e.textContent=txt; return e; }
+function esc(s){ return String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c])); }
+function flash(msg){ const f=mk("div","flash",msg); document.body.appendChild(f); setTimeout(()=>f.remove(),1300); }
+let MODAL=null;
+function modal(html){
+  closeModal();
+  MODAL=document.createElement("div");
+  MODAL.style.cssText="position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:50;display:flex;align-items:flex-end;justify-content:center";
+  const box=document.createElement("div");
+  box.style.cssText="background:#fff;width:100%;max-width:680px;border-radius:16px 16px 0 0;padding:16px;padding-bottom:calc(16px + env(safe-area-inset-bottom));max-height:88vh;overflow:auto";
+  box.innerHTML=html; MODAL.appendChild(box);
+  MODAL.onclick=e=>{ if(e.target===MODAL) closeModal(); };
+  document.body.appendChild(MODAL);
+}
+function closeModal(){ if(MODAL){ MODAL.remove(); MODAL=null; } }
+
+/* text size */
+function getZoom(){ const z=parseFloat(localStorage.getItem(K_ZOOM)); return isNaN(z)?1.15:z; }
+function applyZoom(z){ document.documentElement.style.zoom=z; localStorage.setItem(K_ZOOM,String(z)); }
+function bumpZoom(d){ applyZoom(Math.min(2.2,Math.max(0.9,Math.round((getZoom()+d)*10)/10))); }
+
+/* ---------------- Boot ---------------- */
+function renderAll(){ renderDate(); renderGoals(); renderFavs(); renderMeals(); renderLog(); }
+applyZoom(getZoom());
+$("search").addEventListener("input",renderResults);
+$("sizeUp").onclick=()=>bumpZoom(0.1);
+$("sizeDown").onclick=()=>bumpZoom(-0.1);
+$("mealEdit").onclick=()=>{ MEAL_EDIT=!MEAL_EDIT; $("mealEdit").textContent=MEAL_EDIT?"done":"edit"; renderMeals(); };
+renderAll();
+
+if("serviceWorker" in navigator && location.protocol.startsWith("http")){
+  window.addEventListener("load",()=>navigator.serviceWorker.register("sw.js").catch(()=>{}));
+}
+</script>
+</body>
+</html>
